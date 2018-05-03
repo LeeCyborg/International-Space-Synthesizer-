@@ -1,0 +1,138 @@
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	</head>
+	<body>
+		<div id="spacepeeps">
+		</div>
+		<hr>
+
+<a href="#" class="export">Export Table data into Excel</a>
+<div id="dvData">
+    <table>
+        <tr>
+            <th>Distance</th>
+            <th>Size</th>
+            <th>Danger</th>
+        </tr>
+    </table>
+</div>
+	</body>
+</html>
+
+<script>
+function moveISS () {
+    $.getJSON('http://api.open-notify.org/iss-now.json?callback=?', function(data) {
+        var lat = data['iss_position']['latitude'];
+        var lon = data['iss_position']['longitude'];
+        console.log(lat);
+        console.log(lon);
+       // iss.setLatLng([lat, lon]);
+       // isscirc.setLatLng([lat, lon]);
+       // map.panTo([lat, lon], animate=true);
+    });
+    setTimeout(moveISS, 500); 
+}
+//
+var asteriods = 'https://api.nasa.gov/neo/rest/v1/feed?start_date=2017-01-01&end_date=2017-01-08&api_key=GbE78OuTW0nu6TlEPMZRiQc525a244qiXHVtZIkw';
+var counter = 0;
+var count = 0;
+collect(asteriods);
+for(i=0; i<10; i++){
+	$.getJSON(asteriods, function(data) {
+    	var nasteriods = data.links.prev;
+    	//collect(data.links.prev);
+    });
+}
+function collect(datas){ 
+
+    $.getJSON(datas, function(data) {
+    	
+ 	console.log(data.links.prev);
+ 	//console.log(data.links.next);
+    	$.each(data.near_earth_objects, function(i, item){ 
+    		//console.log(item); //dates 
+    		$.each(item, function(j, jtem){
+    			var haz = jtem.is_potentially_hazardous_asteroid;
+    			//console.log(i+": " + Math.floor(jtem.estimated_diameter.feet.estimated_diameter_max/12) +" inches"); // items
+    			  $('#dvData > table:last-child').append('<tr><td> Asteroids['+count+'] = {'
+    			  	+jtem.close_approach_data[0].miss_distance.kilometers/1000000+','+
+    			  	Math.floor(jtem.estimated_diameter.feet.estimated_diameter_max/12) +','+
+    			  	haz+'};</td></tr>');
+    			  	count++;	
+   				//console.log(jtem.absolute_magnitude_h);
+    			$.each(jtem, function(k, ktem){
+    				//console.log(ktem); // their properties 
+    			});
+   			});
+   		});
+   		if(counter < 10){
+   			collect(data.links.prev);
+   			counter++;
+   		}
+  });
+}
+
+
+$(document).ready(function () {
+    function exportTableToCSV($table, filename) {
+        var $rows = $table.find('tr:has(td)'),
+            // Temporary delimiter characters unlikely to be typed by keyboard
+            // This is to avoid accidentally splitting the actual contents
+            tmpColDelim = String.fromCharCode(11), // vertical tab character
+            tmpRowDelim = String.fromCharCode(0), // null character
+            // actual delimiter characters for CSV format
+            colDelim = '","',
+            rowDelim = '"\r\n"',
+            // Grab text from table into CSV formatted string
+            csv = '"' + $rows.map(function (i, row) {
+                var $row = $(row),
+                    $cols = $row.find('td');
+
+                return $cols.map(function (j, col) {
+                    var $col = $(col),
+                        text = $col.text();
+
+                    return text.replace(/"/g, '""'); // escape double quotes
+
+                }).get().join(tmpColDelim);
+
+            }).get().join(tmpRowDelim)
+                .split(tmpRowDelim).join(rowDelim)
+                .split(tmpColDelim).join(colDelim) + '"';
+        if (false && window.navigator.msSaveBlob) {
+
+						var blob = new Blob([decodeURIComponent(csv)], {
+	              type: 'text/csv;charset=utf8'
+            });
+            window.navigator.msSaveBlob(blob, filename);
+            
+        } else if (window.Blob && window.URL) {
+						// HTML5 Blob        
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf8' });
+            var csvUrl = URL.createObjectURL(blob);
+
+            $(this)
+            		.attr({
+                		'download': filename,
+                		'href': csvUrl
+		            });
+				} else {
+            var csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+						$(this)
+                .attr({
+               		  'download': filename,
+                    'href': csvData,
+                    'target': '_blank'
+            		});
+        }
+    }
+    $(".export").on('click', function (event) {
+        // CSV
+        var args = [$('#dvData>table'), 'export.csv'];
+        
+        exportTableToCSV.apply(this, args);
+    });
+});
+
+</script>
